@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player Page</title>
+  <title>Movie Player</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
   <style>
@@ -14,11 +14,14 @@
       margin: 0;
       padding: 0;
     }
+    .hidden { display: none; }
     .player-container {
       position: relative;
       width: 100%;
       aspect-ratio: 16/9;
       background: #000;
+      border-radius: 12px;
+      overflow: hidden;
     }
     .video-player {
       width: 100%;
@@ -42,21 +45,38 @@
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container py-4">
-    <div class="player-container">
-      <iframe id="videoPlayer" class="video-player" allowfullscreen></iframe>
+    <!-- Input Form -->
+    <div id="inputSection" class="text-center">
+      <h2>Enter Movie / TV ID</h2>
+      <input type="text" id="movieIdInput" class="form-control w-50 mx-auto my-3" placeholder="Enter TMDb Movie/TV ID">
+      <select id="typeSelect" class="form-control w-50 mx-auto my-3">
+        <option value="movie">Movie</option>
+        <option value="tv">TV Show</option>
+      </select>
+      <button class="btn btn-primary" onclick="startPlayer()">Submit</button>
     </div>
 
-    <div class="controls mt-3">
-      <h2 class="movie-title" id="movieTitle">Loading...</h2>
-      <p><span id="movieYear"></span> • Rating: <span id="movieRating"></span></p>
-      <button class="download-btn" id="downloadBtn">
-        <i class="fas fa-download"></i> Download
-      </button>
+    <!-- Player + Info (Hidden Initially) -->
+    <div id="playerSection" class="hidden">
+      <div class="player-container">
+        <iframe id="videoPlayer" class="video-player" allowfullscreen></iframe>
+      </div>
+
+      <div class="controls mt-3">
+        <h2 class="movie-title" id="movieTitle">Loading...</h2>
+        <p>
+          <span id="movieYear"></span> • Rating: <span id="movieRating"></span>
+        </p>
+        <button class="download-btn" id="downloadBtn">
+          <i class="fas fa-download"></i> Download
+        </button>
+      </div>
     </div>
   </div>
 
@@ -66,11 +86,10 @@
       KEY: "fed86956458f19fb45cdd382b6e6de83"
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const movieId = urlParams.get("id");
-    const mediaType = urlParams.get("type") || "movie";
-    let currentSeason = parseInt(urlParams.get("season")) || 1;
-    let currentEpisode = parseInt(urlParams.get("episode")) || 1;
+    let movieId = null;
+    let mediaType = "movie";
+    let currentSeason = 1;
+    let currentEpisode = 1;
 
     async function fetchAPI(endpoint) {
       const url = `${cfg.BASE}${endpoint}?api_key=${cfg.KEY}&language=en-US`;
@@ -89,23 +108,40 @@
 
       // Default player (PStream)
       if (mediaType === "tv") {
-        document.getElementById("videoPlayer").src = `https://iframe.pstream.mov/media/tmdb-tv-${movieId}-${currentSeason}-${currentEpisode}`;
+        document.getElementById("videoPlayer").src =
+          `https://iframe.pstream.mov/media/tmdb-tv-${movieId}-${currentSeason}-${currentEpisode}`;
       } else {
-        document.getElementById("videoPlayer").src = `https://iframe.pstream.mov/media/tmdb-movie-${movieId}`;
+        document.getElementById("videoPlayer").src =
+          `https://iframe.pstream.mov/media/tmdb-movie-${movieId}`;
       }
     }
 
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      let downloadUrl = "";
-      if (mediaType === "tv") {
-        downloadUrl = `https://dl.vidsrc.vip/tv/${movieId}/${currentSeason}/${currentEpisode}`;
-      } else {
-        downloadUrl = `https://dl.vidsrc.vip/movie/${movieId}`;
-      }
-      window.open(downloadUrl, "_blank");
-    });
+    function startPlayer() {
+      movieId = document.getElementById("movieIdInput").value.trim();
+      mediaType = document.getElementById("typeSelect").value;
 
-    loadDetails();
+      if (!movieId) {
+        alert("Please enter a valid TMDb ID");
+        return;
+      }
+
+      // Hide input, show player
+      document.getElementById("inputSection").classList.add("hidden");
+      document.getElementById("playerSection").classList.remove("hidden");
+
+      loadDetails();
+
+      // Download button
+      document.getElementById("downloadBtn").onclick = () => {
+        let downloadUrl = "";
+        if (mediaType === "tv") {
+          downloadUrl = `https://dl.vidsrc.vip/tv/${movieId}/${currentSeason}/${currentEpisode}`;
+        } else {
+          downloadUrl = `https://dl.vidsrc.vip/movie/${movieId}`;
+        }
+        window.open(downloadUrl, "_blank");
+      };
+    }
   </script>
 </body>
 </html>
