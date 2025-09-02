@@ -109,10 +109,10 @@
       // Default player (PStream)
       if (mediaType === "tv") {
         document.getElementById("videoPlayer").src =
-          `https://iframe.pstream.mov/media/tmdb-tv-${movieId}-${currentSeason}-${currentEpisode}`;
+          `https://vidsrc.me/embed/tv/${imdbId || movieId}/${currentSeason}/${currentEpisode}`}`;
       } else {
         document.getElementById("videoPlayer").src =
-          `https://iframe.pstream.mov/media/tmdb-movie-${movieId}`;
+          `https://vidsrc.me/embed/movie/${imdbId || movieId}`;
       }
     }
 
