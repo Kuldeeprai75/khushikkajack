@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultimate Movie/TV Player</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body{background:#0e0f14;color:#fff;font-family:Arial,sans-serif;}
-    .hidden{display:none;}
-    .search-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px;margin-top:20px;}
-    .result-card{background:#151823;border-radius:10px;overflow:hidden;cursor:pointer;transition:.2s;}
-    .result-card:hover{transform:scale(1.05);}
-    .result-card img{width:100%;height:220px;object-fit:cover;}
-    .result-card .info{padding:10px;font-size:14px;}
-    .player-container{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;}
-    .video-player{width:100%;height:100%;border:none;}
-    .controls{padding:20px;background:#151823;border-radius:12px;margin-top:15px;}
-    .movie-title{font-size:22px;font-weight:bold;}
-    .download-btn{background:#23d5ab;border:none;padding:10px 20px;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:10px;}
-    .history-list{margin-top:20px;}
-    .history-item{cursor:pointer;color:#23d5ab;text-decoration:underline;}
-    .generator{margin-top:30px;padding:20px;background:#1c1f2e;border-radius:12px;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Movie/TV Player</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<style>
+body{background:#0e0f14;color:#fff;font-family:Arial,sans-serif;}
+.hidden{display:none;}
+.search-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px;margin-top:20px;}
+.result-card{background:#151823;border-radius:10px;overflow:hidden;cursor:pointer;transition:.2s;}
+.result-card:hover{transform:scale(1.05);}
+.result-card img{width:100%;height:220px;object-fit:cover;}
+.result-card .info{padding:10px;font-size:14px;}
+.player-container{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;}
+.video-player{width:100%;height:100%;border:none;}
+.controls{padding:20px;background:#151823;border-radius:12px;margin-top:15px;}
+.movie-title{font-size:22px;font-weight:bold;}
+.download-btn{background:#23d5ab;border:none;padding:10px 20px;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:10px;}
+.history-list{margin-top:20px;}
+.history-item{cursor:pointer;color:#23d5ab;text-decoration:underline;}
+.language-select{margin:10px 0;width:150px;}
+</style>
 </head>
 <body>
 <div class="container py-4">
@@ -31,7 +31,7 @@
     <h2>Search Movie / TV Show</h2>
     <input type="text" id="movieNameInput" class="form-control w-50 mx-auto my-3" placeholder="Enter name">
     <button class="btn btn-primary" onclick="searchMovie()">Search</button>
-    <div id="searchResults" class="search-results"></div>
+    <div class="search-results" id="searchResults"></div>
     <div class="history-list" id="historyList"></div>
   </div>
 
@@ -54,6 +54,12 @@
         <select id="episodeSelect"></select>
       </div>
 
+      <!-- Language -->
+      <select id="languageSelect" class="form-control language-select" onchange="autoSelectServer()">
+        <option value="hi" selected>Hindi</option>
+        <option value="en">English</option>
+      </select>
+
       <!-- Servers -->
       <label class="mt-2">Select Server:</label>
       <select id="serverSelect" class="form-control w-50 mx-auto my-2"></select>
@@ -62,31 +68,23 @@
     </div>
   </div>
 
-  <!-- Server Generator Tool -->
-  <div class="generator">
-    <h4>➕ Add New Server</h4>
-    <input type="text" id="serverName" class="form-control my-2" placeholder="Server Name">
-    <input type="text" id="moviePattern" class="form-control my-2" placeholder="Movie URL Pattern (use ${id})">
-    <input type="text" id="tvPattern" class="form-control my-2" placeholder="TV URL Pattern (use ${id}, ${s}, ${e})">
-    <button class="btn btn-success" onclick="generateServer()">Generate Code</button>
-    <pre id="generatedCode" class="mt-3 text-light"></pre>
-  </div>
-
 </div>
 
 <script>
 const cfg={BASE:"https://api.themoviedb.org/3/",KEY:"fed86956458f19fb45cdd382b6e6de83",IMG:"https://image.tmdb.org/t/p/w300"};
 
-const servers=[
- {name:"EmbedSU",movie:id=>`https://embed.su/embed/movie/${id}`,tv:(id,s,e)=>`https://embed.su/embed/tv/${id}/${s}/${e}`},
- {name:"MoviesAPI",movie:id=>`https://moviesapi.club/movie/${id}`,tv:(id,s,e)=>`https://moviesapi.club/tv/${id}-${s}-${e}`},
- {name:"MultiEmbed",movie:id=>`https://multiembed.mov/?video_id=${id}&tmdb=1`,tv:(id,s,e)=>`https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`},
- {name:"PStream",movie:id=>`https://iframe.pstream.mov/media/tmdb-movie-${id}`,tv:(id,s,e)=>`https://iframe.pstream.mov/media/tmdb-tv-${id}-${s}-${e}`}
+// servers array me manually paste karenge jo ServerGenerator se milega
+let servers=[
+ {name:"EmbedSU Hindi",movie:id=>`https://embed.su/embed/movie/${id}`,tv:(id,s,e)=>`https://embed.su/embed/tv/${id}/${s}/${e}`},
+ {name:"MoviesAPI English",movie:id=>`https://moviesapi.club/movie/${id}`,tv:(id,s,e)=>`https://moviesapi.club/tv/${id}-${s}-${e}`}
 ];
 
 let movieId=null,mediaType="movie",currentSeason=1,currentEpisode=1,availableServers=[],historyStack=[];
 
-async function fetchAPI(endpoint){const res=await fetch(`${cfg.BASE}${endpoint}?api_key=${cfg.KEY}&language=en-US`);return res.json();}
+async function fetchAPI(endpoint){
+  const res=await fetch(`${cfg.BASE}${endpoint}?api_key=${cfg.KEY}&language=en-US`);
+  return res.json();
+}
 
 async function searchMovie(){
  const q=document.getElementById("movieNameInput").value.trim(); if(!q)return;
@@ -137,32 +135,53 @@ function setupTV(data){
      episodeSelect.appendChild(opt);
    });
    episodeSelect.onchange=()=>{currentEpisode=parseInt(episodeSelect.value);autoSelectServer();};
+   currentEpisode=parseInt(episodeSelect.value)||1;
+   autoSelectServer();
  };
+ currentSeason=parseInt(seasonSelect.value)||1;
+ currentEpisode=1;
  document.getElementById("tvControls").classList.remove("hidden");
 }
 
-function testServer(url){return new Promise(res=>{const f=document.createElement("iframe");f.src=url;f.style.display="none";document.body.appendChild(f);let ok=false;f.onload=()=>{ok=true;f.remove();res(true);};setTimeout(()=>{if(!ok)f.remove();res(ok);},2000);});}
+function testServer(url){return new Promise(res=>{
+ const f=document.createElement("iframe");
+ f.src=url; f.style.display="none"; document.body.appendChild(f);
+ let ok=false;
+ f.onload=()=>{ok=true; f.remove(); res(true);};
+ setTimeout(()=>{if(!ok)f.remove(); res(ok);},2000);
+});}
 
 async function autoSelectServer(){
  availableServers=[];
+ const lang=document.getElementById("languageSelect").value;
  for(let srv of servers){
+   if(lang==="hi" && !srv.name.toLowerCase().includes("hindi")) continue;
+   if(lang==="en" && !srv.name.toLowerCase().includes("english")) continue;
+
    let url=mediaType==="tv"?srv.tv(movieId,currentSeason,currentEpisode):srv.movie(movieId);
    let ok=await testServer(url);
    if(ok)availableServers.push({name:srv.name,url});
  }
  const sel=document.getElementById("serverSelect");sel.innerHTML="";
  if(availableServers.length>0){
-   availableServers.forEach(srv=>{const opt=document.createElement("option");opt.value=srv.url;opt.textContent=srv.name;sel.appendChild(opt);});
+   availableServers.forEach(srv=>{
+     const opt=document.createElement("option");
+     opt.value=srv.url; opt.textContent=srv.name;
+     sel.appendChild(opt);
+   });
    document.getElementById("videoPlayer").src=availableServers[0].url;
- } else {document.getElementById("videoPlayer").src="";alert("No server works!");}
+ } else {
+   document.getElementById("videoPlayer").src="";
+   alert("No server works for selected language!");
+ }
  sel.onchange=()=>{document.getElementById("videoPlayer").src=sel.value;};
 }
 
 function startPlayer(id,type){
- movieId=id;mediaType=type;historyStack.push({type:"play",id,type});
+ movieId=id; mediaType=type; historyStack.push({type:"play",id,type});
  document.getElementById("inputSection").classList.add("hidden");
  document.getElementById("playerSection").classList.remove("hidden");
- loadDetails();autoSelectServer();
+ loadDetails(); autoSelectServer();
  document.getElementById("downloadBtn").onclick=()=>{
    let durl=mediaType==="tv"?`https://dl.vidsrc.vip/tv/${movieId}/${currentSeason}/${currentEpisode}`:`https://dl.vidsrc.vip/movie/${movieId}`;
    window.open(durl,"_blank");
@@ -184,24 +203,6 @@ function renderHistory(){
      div.appendChild(el);
    }
  });
-}
-
-// Disable ads/popups
-window.open=function(){console.log("Blocked popup");return null;};
-
-// Server Generator
-function generateServer(){
-  const name=document.getElementById("serverName").value.trim();
-  const moviePattern=document.getElementById("moviePattern").value.trim();
-  const tvPattern=document.getElementById("tvPattern").value.trim();
-  if(!name||!moviePattern||!tvPattern){alert("Fill all fields");return;}
-  const code=`
-servers.push({
- name:"${name}",
- movie:id=>\`${moviePattern}\`,
- tv:(id,s,e)=>\`${tvPattern}\`
-});`;
-  document.getElementById("generatedCode").textContent=code;
 }
 </script>
 </body>
