@@ -3,76 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Movie Player</title>
+  <title>Smart Movie Player</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0e0f14;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-    }
-    .hidden { display: none; }
-    .search-results {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .result-card {
-      background: #151823;
-      border-radius: 10px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .result-card:hover { transform: scale(1.05); }
-    .result-card img { width: 100%; height: 220px; object-fit: cover; }
-    .result-card .info { padding: 10px; font-size: 14px; }
-    .player-container {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .video-player {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    .controls {
-      padding: 20px;
-      background: #151823;
-      border-radius: 12px;
-      margin-top: 15px;
-    }
-    .movie-title { font-size: 22px; font-weight: bold; }
-    .download-btn {
-      background: #23d5ab;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    body { background:#0e0f14; color:#fff; font-family:Arial, sans-serif; }
+    .hidden { display:none; }
+    .search-results { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:15px; margin-top:20px; }
+    .result-card { background:#151823; border-radius:10px; overflow:hidden; cursor:pointer; transition:.2s; }
+    .result-card:hover { transform:scale(1.05); }
+    .result-card img { width:100%; height:220px; object-fit:cover; }
+    .result-card .info { padding:10px; font-size:14px; }
+    .player-container { width:100%; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; }
+    .video-player { width:100%; height:100%; border:none; }
+    .controls { padding:20px; background:#151823; border-radius:12px; margin-top:15px; }
+    .movie-title { font-size:22px; font-weight:bold; }
+    .download-btn { background:#23d5ab; border:none; padding:10px 20px; border-radius:6px; font-weight:bold; cursor:pointer; margin-top:10px; }
   </style>
 </head>
 <body>
   <div class="container py-4">
-    <!-- Search Form -->
+    <!-- Search Section -->
     <div id="inputSection" class="text-center">
       <h2>Search Movie / TV Show</h2>
-      <input type="text" id="movieNameInput" class="form-control w-50 mx-auto my-3" placeholder="Enter movie or TV show name">
+      <input type="text" id="movieNameInput" class="form-control w-50 mx-auto my-3" placeholder="Enter name">
       <button class="btn btn-primary" onclick="searchMovie()">Search</button>
       <div id="searchResults" class="search-results"></div>
     </div>
 
-    <!-- Player + Info (Hidden Initially) -->
+    <!-- Player Section -->
     <div id="playerSection" class="hidden">
       <div class="player-container">
         <iframe id="videoPlayer" class="video-player" allowfullscreen></iframe>
@@ -80,9 +39,11 @@
 
       <div class="controls mt-3">
         <h2 class="movie-title" id="movieTitle">Loading...</h2>
-        <p>
-          <span id="movieYear"></span> • Rating: <span id="movieRating"></span>
-        </p>
+        <p><span id="movieYear"></span> • Rating: <span id="movieRating"></span></p>
+
+        <label class="mt-2">Select Server:</label>
+        <select id="serverSelect" class="form-control w-50 mx-auto my-2"></select>
+
         <button class="download-btn" id="downloadBtn">
           <i class="fas fa-download"></i> Download
         </button>
@@ -97,89 +58,107 @@
       IMG: "https://image.tmdb.org/t/p/w300"
     };
 
-    let movieId = null;
-    let mediaType = "movie";
-    let currentSeason = 1;
-    let currentEpisode = 1;
+    // All servers
+    const servers = [
+      {
+        name: "EmbedSU",
+        movie: id => `https://embed.su/embed/movie/${id}`,
+        tv: (id,s,e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
+      },
+      {
+        name: "MoviesAPI",
+        movie: id => `https://moviesapi.club/movie/${id}`,
+        tv: (id,s,e) => `https://moviesapi.club/tv/${id}-${s}-${e}`
+      },
+      {
+        name: "MultiEmbed",
+        movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`,
+        tv: (id,s,e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
+      },
+      {
+        name: "PStream",
+        movie: id => `https://iframe.pstream.mov/media/tmdb-movie-${id}`,
+        tv: (id,s,e) => `https://iframe.pstream.mov/media/tmdb-tv-${id}-${s}-${e}`
+      }
+    ];
+
+    let movieId=null, mediaType="movie", currentSeason=1, currentEpisode=1, availableServers=[];
 
     async function fetchAPI(endpoint) {
       const url = `${cfg.BASE}${endpoint}?api_key=${cfg.KEY}&language=en-US`;
-      const res = await fetch(url);
-      return res.json();
+      const res = await fetch(url); return res.json();
     }
 
-    // Search Movie/TV by Name
     async function searchMovie() {
-      const query = document.getElementById("movieNameInput").value.trim();
-      if (!query) return alert("Please enter a name");
-
-      const url = `${cfg.BASE}search/multi?api_key=${cfg.KEY}&language=en-US&query=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
+      const q = document.getElementById("movieNameInput").value.trim();
+      if(!q) return alert("Enter a name");
+      const res = await fetch(`${cfg.BASE}search/multi?api_key=${cfg.KEY}&language=en-US&query=${encodeURIComponent(q)}`);
       const data = await res.json();
+      const resultsDiv=document.getElementById("searchResults"); resultsDiv.innerHTML="";
 
-      const resultsDiv = document.getElementById("searchResults");
-      resultsDiv.innerHTML = "";
+      if(data.results.length===0){ resultsDiv.innerHTML="<p>No results found.</p>"; return; }
 
-      if (data.results.length === 0) {
-        resultsDiv.innerHTML = "<p>No results found.</p>";
-        return;
-      }
+      data.results.forEach(item=>{
+        if(!item.id) return;
+        const title=item.title||item.name;
+        const year=(item.release_date||item.first_air_date||"").split("-")[0]||"N/A";
+        const poster=item.poster_path?cfg.IMG+item.poster_path:"https://via.placeholder.com/300x450?text=No+Image";
 
-      data.results.forEach(item => {
-        if (!item.id) return;
-        const title = item.title || item.name;
-        const year = (item.release_date || item.first_air_date || "").split("-")[0] || "N/A";
-        const poster = item.poster_path ? cfg.IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
-
-        const card = document.createElement("div");
-        card.className = "result-card";
-        card.innerHTML = `
-          <img src="${poster}" alt="${title}">
-          <div class="info"><b>${title}</b><br><span>${year} • ${item.media_type.toUpperCase()}</span></div>
-        `;
-        card.onclick = () => startPlayer(item.id, item.media_type);
+        const card=document.createElement("div");
+        card.className="result-card";
+        card.innerHTML=`<img src="${poster}"><div class="info"><b>${title}</b><br>${year} • ${item.media_type.toUpperCase()}</div>`;
+        card.onclick=()=>startPlayer(item.id,item.media_type);
         resultsDiv.appendChild(card);
       });
     }
 
     async function loadDetails() {
-      if (!movieId) return;
-      const data = await fetchAPI(`${mediaType}/${movieId}`);
-      const title = data.title || data.name;
-      const year = (data.release_date || data.first_air_date || "").split("-")[0];
-      document.getElementById("movieTitle").textContent = title;
-      document.getElementById("movieYear").textContent = year || "N/A";
-      document.getElementById("movieRating").textContent = data.vote_average?.toFixed(1) || "0.0";
-
-      // Hexa.watch default
-      if (mediaType === "tv") {
-        document.getElementById("videoPlayer").src =
-          `https://hexa.watch/watch/tv/${movieId}/${currentSeason}/${currentEpisode}`;
-      } else {
-        document.getElementById("videoPlayer").src =
-          `https://hexa.watch/watch/movie/${movieId}`;
-      }
+      const data=await fetchAPI(`${mediaType}/${movieId}`);
+      const title=data.title||data.name;
+      const year=(data.release_date||data.first_air_date||"").split("-")[0];
+      document.getElementById("movieTitle").textContent=title;
+      document.getElementById("movieYear").textContent=year||"N/A";
+      document.getElementById("movieRating").textContent=data.vote_average?.toFixed(1)||"0.0";
     }
 
-    function startPlayer(id, type) {
-      movieId = id;
-      mediaType = type;
+    function testServer(url){
+      return new Promise(resolve=>{
+        const f=document.createElement("iframe");
+        f.src=url; f.style.display="none"; document.body.appendChild(f);
+        let ok=false;
+        f.onload=()=>{ok=true;document.body.removeChild(f);resolve(true);};
+        setTimeout(()=>{ if(!ok){document.body.removeChild(f);resolve(false);} },2500);
+      });
+    }
 
-      // Hide search, show player
+    async function autoSelectServer(){
+      availableServers=[];
+      for(let srv of servers){
+        let url = mediaType==="tv"? srv.tv(movieId,currentSeason,currentEpisode):srv.movie(movieId);
+        let ok=await testServer(url);
+        if(ok) availableServers.push({name:srv.name,url});
+      }
+      const sel=document.getElementById("serverSelect"); sel.innerHTML="";
+      if(availableServers.length>0){
+        availableServers.forEach((srv,i)=>{
+          const opt=document.createElement("option"); opt.value=srv.url; opt.textContent=srv.name; sel.appendChild(opt);
+        });
+        document.getElementById("videoPlayer").src=availableServers[0].url; // auto load first
+      } else {
+        document.getElementById("videoPlayer").src="";
+        alert("No working server found!");
+      }
+      sel.onchange=()=>{document.getElementById("videoPlayer").src=sel.value;};
+    }
+
+    function startPlayer(id,type){
+      movieId=id; mediaType=type;
       document.getElementById("inputSection").classList.add("hidden");
       document.getElementById("playerSection").classList.remove("hidden");
-
-      loadDetails();
-
-      // Download button
-      document.getElementById("downloadBtn").onclick = () => {
-        let downloadUrl = "";
-        if (mediaType === "tv") {
-          downloadUrl = `https://dl.vidsrc.vip/tv/${movieId}/${currentSeason}/${currentEpisode}`;
-        } else {
-          downloadUrl = `https://dl.vidsrc.vip/movie/${movieId}`;
-        }
-        window.open(downloadUrl, "_blank");
+      loadDetails(); autoSelectServer();
+      document.getElementById("downloadBtn").onclick=()=>{
+        let durl=mediaType==="tv"?`https://dl.vidsrc.vip/tv/${movieId}/${currentSeason}/${currentEpisode}`:`https://dl.vidsrc.vip/movie/${movieId}`;
+        window.open(durl,"_blank");
       };
     }
   </script>
